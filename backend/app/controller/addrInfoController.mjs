@@ -1,7 +1,12 @@
 
 import 'dotenv/config'
 import axios from 'axios';
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
+
 export async function getInfo(req,res){
+
+  const prisma = new PrismaClient()
   try{
     const addr = req.params.address;
     console.log(addr);
@@ -49,6 +54,32 @@ export async function getInfo(req,res){
    const convertToWei = parseInt(resGasPrice.data.result,16);
    const convertToGwei = convertToWei / 1e9;
    const convertToEth = resAddrBalance.data.result / 1e18
+
+   const findAddress = await prisma.addrWalet.findFirst({
+     where:{
+       address: addr
+     }
+   })
+   let  logAddr;
+   if(findAddress == null){
+     logAddr = await prisma.addrWalet.create({
+       data:{
+         address:addr,
+         balance:convertToEth
+       }
+     })
+   }else{
+     logAddr = await prisma.addrWalet.update({
+       where:{
+         address: addr
+       },
+       data:{
+         balance: convertToEth
+       }
+     })
+   }
+
+   
     res.status(200)
        .set('Content-Type','application/json')
        .json({
