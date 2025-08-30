@@ -12,8 +12,8 @@ contract MyNFT is ERC721, Ownable{
 
     // function ng pang mint
     // safeMint para yung able lang mag mint na ibang contracts    
-    function mint( address to) public onlyOwner{
-        _safeMint(to,nextTokenId);
+    function mint() public onlyOwner{
+        _safeMint(msg.sender,nextTokenId);
         nextTokenId++;
     }
 }
