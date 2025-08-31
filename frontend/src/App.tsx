@@ -33,7 +33,6 @@ export interface AddrInfo {
 function App() {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [address, setAddress] = useState<string>("");
-  const [balance, setBalance] = useState<string>("");
   const [transactions, setTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -42,7 +41,7 @@ function App() {
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [data, setData] = useState<AddrInfo | null>(null);
   const [loadingMint, setLoadingMint] = useState<boolean>(false);
-  const [mintedTokens, setMintedTokens] = useState();
+  const [mintedTokens, setMintedTokens] = useState<any[]>([]);
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
 
@@ -64,9 +63,6 @@ function App() {
       const addr = accounts[0];
       setAddress(addr);
 
-      const bal = await browserProvider.getBalance(addr);
-      setBalance(formatEther(bal));
-
       fetchTransactions(addr);
       fetchMintedErc721(addr);
       getAddrInfo(addr);
@@ -79,7 +75,6 @@ function App() {
 
   const disconnectWallet = () => {
     setAddress("");
-    setBalance("");
     setTransactions([]);
     setError("");
     setData(null);
@@ -107,8 +102,8 @@ function App() {
         console.log("data result:");
         console.log(res.data.message);
       }
-    } catch (err) {
-      setError("Failed to fetch transactions");
+    } catch (err: unknown) {
+      setError(`failed to get transactions ${err}`);
     } finally {
       setLoadingTransactions(false);
     }
@@ -139,8 +134,8 @@ function App() {
       } else {
         setError(res.data.message);
       }
-    } catch (err) {
-      setError("Failed to fetch transactions");
+    } catch (err: unknown) {
+      setError(`Failed to fetch transactions ${err}`);
     } finally {
       setLoadingTransactions(false);
     }
@@ -182,6 +177,7 @@ function App() {
       console.log(mintContract);
       console.log(`this is the token id :${tokenIdBefore}`);
       alert("NFT minted successfully!");
+      fetchMintedErc721(address);
       //fetchTransactions(address); // refresh transactions after mint
     } catch (err: any) {
       console.error(err);
@@ -191,8 +187,8 @@ function App() {
     }
   };
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
-      <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-lg p-6">
+    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 gap-9">
+      <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-lg p-6  ">
         <h1 className="text-2xl font-bold mb-4">Ethereum Wallet Dashboard</h1>
 
         {!address ? (
@@ -230,19 +226,18 @@ function App() {
                 <p>No address info</p>
               )}
             </div>
-
-            <button
-              onClick={disconnectWallet}
-              className="w-full bg-red-600 hover:bg-red-700 rounded-xl py-3 mb-6 font-semibold"
-            >
-              Disconnect
-            </button>
             <button
               onClick={mintNFT}
               disabled={loadingMint}
               className="w-full bg-green-600 hover:bg-green-700 rounded-xl py-3 mb-4 font-semibold"
             >
               {loadingMint ? "Minting..." : "Mint NFT"}
+            </button>
+            <button
+              onClick={disconnectWallet}
+              className="w-full bg-red-600 hover:bg-red-700 rounded-xl py-3 mb-6 font-semibold"
+            >
+              Disconnect
             </button>
 
             <h2 className="text-xl font-bold mb-2">Last 10 Transactions</h2>
@@ -278,6 +273,51 @@ function App() {
           <div className="mt-4 bg-red-500/20 text-red-400 p-3 rounded-lg">
             {error}
           </div>
+        )}
+      </div>
+
+      <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-lg p-6">
+        <h1 className="text-2xl font-bold mb-4">Owned Minted ERC721</h1>
+
+        {loadingTransactions ? (
+          <p>Loading transactions...</p>
+        ) : mintedTokens && mintedTokens.length > 0 ? (
+          <ul className="space-y-4 max-h-80 overflow-y-auto">
+            {mintedTokens.map((tx, id) => (
+              <li
+                key={id}
+                className="bg-zinc-800 p-4 rounded-2xl shadow-md border border-zinc-700"
+              >
+                <div className="flex flex-col space-y-2">
+                  <p>
+                    <span className="font-semibold">Token Name:</span>{" "}
+                    {tx.tokenName}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Token Symbol:</span>{" "}
+                    {tx.tokenSymbol}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Token ID:</span>{" "}
+                    {tx.tokenID}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Contract Address:</span>{" "}
+                    {tx.contractAddress}
+                  </p>
+                  <p>
+                    <span className="font-semibold">To:</span> {tx.to}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Value:</span>{" "}
+                    {tx.value ? formatEther(tx.value) : "0"} ETH
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-400">No minted tokens found</p>
         )}
       </div>
     </div>
