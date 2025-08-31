@@ -15,7 +15,6 @@ export async function getInfo(req,res){
     const resBlockNum = await axios.get(
       process.env.ETHER_SCAN_LINK,{
        params:{
-         chainid:1,
          module:"proxy",
          action:"eth_blockNumber",
          apikey:process.env.ETHER_SCAN_API_KEY        
@@ -27,7 +26,6 @@ export async function getInfo(req,res){
     const resGasPrice = await axios.get(
       process.env.ETHER_SCAN_LINK,{
         params:{
-          chainid:1,
           module:"proxy",
           action:"eth_gasPrice",
           apikey:process.env.ETHER_SCAN_API_KEY
@@ -39,7 +37,6 @@ export async function getInfo(req,res){
     const resAddrBalance = await axios.get(
       process.env.ETHER_SCAN_LINK,{
         params:{
-          chainid:1,
           module:"account",
           action:"balance",
           address:addr,
