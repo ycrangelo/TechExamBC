@@ -11,7 +11,7 @@ export async function getInfo(req,res){
     const addr = req.params.address;
     console.log(addr);
     //console.log( `this is the api key :${process.env.ETHER_SCAN_API_KEY}`)
-    //Windowsconsole.log("nandito ako umiibig sayo")
+    //console.log("nandito ako umiibig sayo")
     const resBlockNum = await axios.get(
       process.env.ETHER_SCAN_LINK,{
        params:{
@@ -45,8 +45,7 @@ export async function getInfo(req,res){
         }
       }
     )
-    console.log(resAddrBalance)
-    console.log("hello tite")
+    //console.log(resAddrBalance)
 
    const convertToWei = parseInt(resGasPrice.data.result,16);
    const convertToGwei = convertToWei / 1e9;
