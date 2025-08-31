@@ -1,13 +1,14 @@
 import axios from "axios";
-import { BrowserProvider, formatEther } from "ethers";
+import { BrowserProvider, Contract, formatEther } from "ethers";
 import { useEffect, useState } from "react";
+import nftAbi from "./abi/TokenModuleAngeloNFT.json";
 
 // .ENV VALUES
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
 const ETHERSCAN_API = import.meta.env.VITE_ETHERSCAN_API;
 const BACKEND_API = import.meta.env.VITE_BACKEND_API;
 const contractAddress: string = "0x3263925Cb57481aF41e397e875E51b58897F953E";
-console.log(contractAddress);
+
 export interface Block {
   id: number;
   block_number: string;
@@ -17,12 +18,10 @@ export interface GasPrice {
   gas_price_in_hex: string;
   gas_price_in_gwei: number;
 }
-
 export interface AddressBalance {
   balance_in_wei: string;
   balance_in_eth: number;
 }
-
 export interface AddrInfo {
   message: string;
   address: string;
@@ -32,20 +31,21 @@ export interface AddrInfo {
 }
 
 function App() {
-  const [provider, setProvider] = useState(null);
+  const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [address, setAddress] = useState<string>("");
   const [transactionMessage, setTransactionMessage] = useState<string>("");
   const [balance, setBalance] = useState<string>("");
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [data, setData] = useState<AddrInfo | null>();
+  const [loadingTransactions, setLoadingTransactions] =
+    useState<boolean>(false);
+  const [loadingData, setLoadingData] = useState<boolean>(false);
+  const [data, setData] = useState<AddrInfo | null>(null);
+  const [loadingMint, setLoadingMint] = useState<boolean>(false);
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
-  // console.log(BACKEND_API)
-  // console.log(address)
-  // console.log("malaki tite");
-  // connect wallet
+
   const connectWallet = async () => {
     try {
       if (!hasProvider) {
@@ -61,16 +61,14 @@ function App() {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-
       const addr = accounts[0];
       setAddress(addr);
-      // console.log(`this is the add: ${addr}`);
-      const balance = await browserProvider.getBalance(addr);
-      setBalance(formatEther(balance));
+
+      const bal = await browserProvider.getBalance(addr);
+      setBalance(formatEther(bal));
 
       fetchTransactions(addr);
       getAddrInfo(addr);
-      //console.log(`this is hte link${BACKEND_API}/${address}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
     } finally {
@@ -78,16 +76,16 @@ function App() {
     }
   };
 
-  // just clear usestates
   const disconnectWallet = () => {
     setAddress("");
     setBalance("");
     setTransactions([]);
     setError("");
+    setData(null);
   };
 
-  // Etherscan
   const fetchTransactions = async (addr: string) => {
+    setLoadingTransactions(true);
     try {
       const res = await axios.get(ETHERSCAN_API, {
         params: {
@@ -95,40 +93,37 @@ function App() {
           action: "txlist",
           address: addr,
           startblock: 0,
-          endblock: 20,
+          endblock: 99999999,
           page: 1,
-          offset: 10, // gano ka dami
-          sort: "desc", // pagka sunodusnod
+          offset: 10,
+          sort: "desc",
           apikey: ETHERSCAN_API_KEY,
         },
       });
-      console.log(`ito transact ${res.data.message}`);
+
       if (res.data.status === "1") {
         setTransactions(res.data.result);
         setTransactionMessage(res.data.message);
-        // console.log(`ito transact ${transactions}`);
-        //  console.log("dito sa yes");
       } else {
         setError(res.data.message);
-        // console.log(`ito transact ${transactions}`);
-        setTransactionMessage(res.data.message);
-        // console.log("dito sa no");
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      setError(transactionMessage);
+      setError("Failed to fetch transactions");
+    } finally {
+      setLoadingTransactions(false);
     }
   };
 
-  const getAddrInfo = async (adres: string) => {
+  const getAddrInfo = async (addr: string) => {
+    setLoadingData(true);
     try {
-      const response = await axios.get(`${BACKEND_API}/${adres}`);
+      const response = await axios.get(`${BACKEND_API}/${addr}`);
       setData(response.data);
-      console.log(`${BACKEND_API}/${adres}`);
-      console.log("nasa loob ako ng get address");
-    } catch (e) {
-      console.log("has an error");
-      console.log(e);
+    } catch (err) {
+      console.log("Error fetching address info:", err);
+      setError("Failed to fetch address info");
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -136,6 +131,33 @@ function App() {
     console.log("Updated data:", data);
   }, [data]);
 
+  // Function to mint ERC721 NFT
+  const mintNFT = async () => {
+    if (!provider || !address) return;
+    setLoadingMint(true);
+    setError("");
+    try {
+      const signer = await provider.getSigner();
+      const contract = new Contract(contractAddress, nftAbi.abi, signer);
+
+      // Read nextTokenId BEFORE mint
+      const tokenIdBefore = await contract.nextTokenId();
+
+      // Assuming your contract has a simple "mint" function without parameters
+      const mintContract = await contract.mint();
+      await mintContract.wait();
+
+      console.log(mintContract);
+      console.log(`this is the token id :${tokenIdBefore}`);
+      alert("NFT minted successfully!");
+      //fetchTransactions(address); // refresh transactions after mint
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to mint NFT");
+    } finally {
+      setLoadingMint(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
       <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-lg p-6">
@@ -151,26 +173,31 @@ function App() {
           </button>
         ) : (
           <>
-            {/* Wallet Info */}
             <div className="mb-4">
               <p className="text-sm text-gray-400">Address:</p>
               <p className="font-mono break-all">{address}</p>
             </div>
 
-            {data && (
-              <div className="mb-4 p-4 bg-zinc-800 rounded-xl">
-                <p className="text-sm text-gray-400">
-                  Current ETH Block Number:
-                </p>
-                <p>{data.block.block_number}</p>
+            <div className="mb-4 p-4 bg-zinc-800 rounded-xl">
+              {loadingData ? (
+                <p>Loading address info...</p>
+              ) : data ? (
+                <>
+                  <p className="text-sm text-gray-400">
+                    Current ETH Block Number:
+                  </p>
+                  <p>{data.block.block_number}</p>
 
-                <p className="text-sm text-gray-400">Gas Price (Gwei):</p>
-                <p>{data.gas_price.gas_price_in_gwei}</p>
+                  <p className="text-sm text-gray-400">Gas Price (Gwei):</p>
+                  <p>{data.gas_price.gas_price_in_gwei}</p>
 
-                <p className="text-sm text-gray-400">Wallet Balance (ETH):</p>
-                <p>{data.address_balance.balance_in_eth}</p>
-              </div>
-            )}
+                  <p className="text-sm text-gray-400">Wallet Balance (ETH):</p>
+                  <p>{data.address_balance.balance_in_eth}</p>
+                </>
+              ) : (
+                <p>No address info</p>
+              )}
+            </div>
 
             <button
               onClick={disconnectWallet}
@@ -178,10 +205,18 @@ function App() {
             >
               Disconnect
             </button>
+            <button
+              onClick={mintNFT}
+              disabled={loadingMint}
+              className="w-full bg-green-600 hover:bg-green-700 rounded-xl py-3 mb-4 font-semibold"
+            >
+              {loadingMint ? "Minting..." : "Mint NFT"}
+            </button>
 
-            {/* Transactions */}
             <h2 className="text-xl font-bold mb-2">Last 10 Transactions</h2>
-            {transactions.length > 0 ? (
+            {loadingTransactions ? (
+              <p>Loading transactions...</p>
+            ) : transactions.length > 0 ? (
               <ul className="space-y-2 max-h-64 overflow-y-auto text-sm">
                 {transactions.map((tx, id) => (
                   <li key={id} className="bg-zinc-800 p-3 rounded-lg break-all">
