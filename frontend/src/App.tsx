@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
 const ETHERSCAN_API = import.meta.env.VITE_ETHERSCAN_API;
 const BACKEND_API = import.meta.env.VITE_BACKEND_API;
-
+const contractAddress: string = "0x3263925Cb57481aF41e397e875E51b58897F953E";
+console.log(contractAddress);
 export interface Block {
   id: number;
   block_number: string;
@@ -155,10 +156,12 @@ function App() {
               <p className="text-sm text-gray-400">Address:</p>
               <p className="font-mono break-all">{address}</p>
             </div>
-          
+
             {data && (
               <div className="mb-4 p-4 bg-zinc-800 rounded-xl">
-                <p className="text-sm text-gray-400">Current ETH Block Number:</p>
+                <p className="text-sm text-gray-400">
+                  Current ETH Block Number:
+                </p>
                 <p>{data.block.block_number}</p>
 
                 <p className="text-sm text-gray-400">Gas Price (Gwei):</p>
