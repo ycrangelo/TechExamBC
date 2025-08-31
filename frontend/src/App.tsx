@@ -9,20 +9,20 @@ const ETHERSCAN_API = import.meta.env.VITE_ETHERSCAN_API;
 const BACKEND_API = import.meta.env.VITE_BACKEND_API;
 const contractAddress: string = "0x3263925Cb57481aF41e397e875E51b58897F953E";
 
-export interface Block {
+interface Block {
   id: number;
   block_number: string;
 }
-export interface GasPrice {
+interface GasPrice {
   id: number;
   gas_price_in_hex: string;
   gas_price_in_gwei: number;
 }
-export interface AddressBalance {
+interface AddressBalance {
   balance_in_wei: string;
   balance_in_eth: number;
 }
-export interface AddrInfo {
+interface AddrInfo {
   message: string;
   address: string;
   block: Block;
@@ -42,8 +42,26 @@ function App() {
   const [data, setData] = useState<AddrInfo | null>(null);
   const [loadingMint, setLoadingMint] = useState<boolean>(false);
   const [mintedTokens, setMintedTokens] = useState<any[]>([]);
+  const [openTransferModal, setOpenTransferModel] = useState<boolean>(false);
+  const [selectedNft, setSelectedNft] = useState<string>("");
+  const [recipient, setRecipient] = useState("");
+  const [countTracsac, setCountTransac] = useState<number>(0);
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
+
+  const openModal = (token: string) => {
+    setSelectedNft(token);
+    setOpenTransferModel(true);
+  };
+  const closeModal = () => {
+    setOpenTransferModel(false);
+  };
+  const confirmTransfer = async () => {
+    if (!selectedNft || !recipient) return;
+    await transferNft(selectedNft, recipient);
+    setRecipient("");
+    closeModal();
+  };
 
   const connectWallet = async () => {
     try {
@@ -61,6 +79,7 @@ function App() {
         method: "eth_requestAccounts",
       });
       const addr = accounts[0];
+      console.log(`ito yung adress ${accounts[0]}`);
       setAddress(addr);
 
       fetchTransactions(addr);
@@ -120,17 +139,27 @@ function App() {
           contractaddress: contractAddress,
           startblock: 0,
           endblock: 99999999,
-          page: 1,
-          offset: 10,
-          sort: "desc",
+          sort: "asc", // important: chronological order
           apikey: ETHERSCAN_API_KEY,
         },
       });
 
       if (res.data.status === "1") {
-        setMintedTokens(res.data.result);
-        console.log("ito mint token");
-        console.log(res.data.result);
+        const owned = new Map<string, any>();
+
+        res.data.result.forEach((token: any) => {
+          const tokenId = token.tokenID;
+          if (token.to.toLowerCase() === addr.toLowerCase()) {
+            owned.set(tokenId, token); // you received this token
+          }
+          if (token.from.toLowerCase() === addr.toLowerCase()) {
+            owned.delete(tokenId); // you sent this token away
+          }
+        });
+
+        const ownedTokens = Array.from(owned.values());
+        setMintedTokens(ownedTokens);
+        console.log("Owned ERC721 tokens:", ownedTokens);
       } else {
         setError(res.data.message);
       }
@@ -177,7 +206,7 @@ function App() {
       console.log(mintContract);
       console.log(`this is the token id :${tokenIdBefore}`);
       alert("NFT minted successfully!");
-      fetchMintedErc721(address);
+      setCountTransac(countTracsac + 1);
       //fetchTransactions(address); // refresh transactions after mint
     } catch (err: any) {
       console.error(err);
@@ -186,6 +215,45 @@ function App() {
       setLoadingMint(false);
     }
   };
+
+  const transferNft = async (tokenid: string, to: string) => {
+    try {
+      if (!tokenid || !to) {
+        alert("incomplete details");
+      }
+      const signer = await provider.getSigner();
+      const from = await signer.getAddress();
+      const contract = new Contract(contractAddress, nftAbi.abi, signer);
+
+      // ethers v6 needs a BigNumberish; tokenId is a decimal string from Etherscan
+      const transfer = await contract[
+        "safeTransferFrom(address,address,uint256)"
+      ](from, to, BigInt(tokenid));
+      await transfer.wait();
+      alert(`NFT ${tokenid} transferred successfully!`);
+      setCountTransac(countTracsac + 1);
+      // Query the contract for new owner
+      const newOwner = await contract.ownerOf(BigInt(tokenid));
+      console.log(newOwner);
+      if (newOwner.toLowerCase() === to.toLowerCase()) {
+        alert(`NFT ${tokenid} successfully transferred to ${to}`);
+        fetchMintedErc721(address);
+      } else {
+        alert(`Transfer failed, current owner is still ${newOwner}`);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (!address || !contractAddress) return;
+
+    fetchMintedErc721(address);
+    getAddrInfo(address);
+    fetchTransactions(address);
+  }, [countTracsac]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 gap-9">
       <div className="w-full max-w-xl bg-zinc-900 rounded-2xl shadow-lg p-6  ">
@@ -312,6 +380,13 @@ function App() {
                     <span className="font-semibold">Value:</span>{" "}
                     {tx.value ? formatEther(tx.value) : "0"} ETH
                   </p>
+                  <button
+                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    onClick={() => openModal(tx.tokenID)}
+                    disabled={loading}
+                  >
+                    Transfer
+                  </button>
                 </div>
               </li>
             ))}
@@ -320,6 +395,38 @@ function App() {
           <p className="text-gray-400">No minted tokens found</p>
         )}
       </div>
+      {openTransferModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className=" p-6 w-full max-w-md bg-zinc-900 rounded-2xl shadow-lg text-white">
+            <h2 className="text-lg font-semibold mb-4">Transfer NFT</h2>
+            <p className="text-sm mb-2">
+              <span className="font-semibold">Token ID:</span> {selectedNft}
+            </p>
+            <input
+              type="text"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              placeholder="Recipient wallet address (0x...)"
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="bg-zinc-900 px-3 py-1 rounded"
+                onClick={closeModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded font-semibold disabled:opacity-50"
+                onClick={confirmTransfer}
+                disabled={!recipient || loading}
+              >
+                {loading ? "Transferring..." : "Confirm Transfer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
