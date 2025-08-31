@@ -1,10 +1,34 @@
 import axios from "axios";
 import { BrowserProvider, formatEther } from "ethers";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-// ⚠️ replace with your own Etherscan API key
+// .ENV VALUES
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
 const ETHERSCAN_API = import.meta.env.VITE_ETHERSCAN_API;
+const BACKEND_API = import.meta.env.VITE_BACKEND_API;
+
+export interface Block {
+  id: number;
+  block_number: string;
+}
+export interface GasPrice {
+  id: number;
+  gas_price_in_hex: string;
+  gas_price_in_gwei: number;
+}
+
+export interface AddressBalance {
+  balance_in_wei: string;
+  balance_in_eth: number;
+}
+
+export interface AddrInfo {
+  message: string;
+  address: string;
+  block: Block;
+  gas_price: GasPrice;
+  address_balance: AddressBalance;
+}
 
 function App() {
   const [provider, setProvider] = useState(null);
@@ -14,10 +38,12 @@ function App() {
   const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [data, setData] = useState<AddrInfo | null>();
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
-
-  console.log("malaki tite");
+  // console.log(BACKEND_API)
+  // console.log(address)
+  // console.log("malaki tite");
   // connect wallet
   const connectWallet = async () => {
     try {
@@ -37,11 +63,13 @@ function App() {
 
       const addr = accounts[0];
       setAddress(addr);
-      console.log(`this is the add: ${addr}`);
+      // console.log(`this is the add: ${addr}`);
       const balance = await browserProvider.getBalance(addr);
       setBalance(formatEther(balance));
 
       fetchTransactions(addr);
+      getAddrInfo(addr);
+      //console.log(`this is hte link${BACKEND_API}/${address}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
     } finally {
@@ -77,19 +105,35 @@ function App() {
       if (res.data.status === "1") {
         setTransactions(res.data.result);
         setTransactionMessage(res.data.message);
-        console.log(`ito transact ${transactions}`);
-        console.log("dito sa yes");
+        // console.log(`ito transact ${transactions}`);
+        //  console.log("dito sa yes");
       } else {
         setError(res.data.message);
-        console.log(`ito transact ${transactions}`);
+        // console.log(`ito transact ${transactions}`);
         setTransactionMessage(res.data.message);
-        console.log("dito sa no");
+        // console.log("dito sa no");
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError(transactionMessage);
     }
   };
+
+  const getAddrInfo = async (adres: string) => {
+    try {
+      const response = await axios.get(`${BACKEND_API}/${adres}`);
+      setData(response.data);
+      console.log(`${BACKEND_API}/${adres}`);
+      console.log("nasa loob ako ng get address");
+    } catch (e) {
+      console.log("has an error");
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Updated data:", data);
+  }, [data]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
@@ -106,14 +150,25 @@ function App() {
           </button>
         ) : (
           <>
+            {/* Wallet Info */}
             <div className="mb-4">
               <p className="text-sm text-gray-400">Address:</p>
               <p className="font-mono break-all">{address}</p>
             </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-400">Balance:</p>
-              <p>{balance} ETH</p>
-            </div>
+          
+            {data && (
+              <div className="mb-4 p-4 bg-zinc-800 rounded-xl">
+                <p className="text-sm text-gray-400">Current ETH Block Number:</p>
+                <p>{data.block.block_number}</p>
+
+                <p className="text-sm text-gray-400">Gas Price (Gwei):</p>
+                <p>{data.gas_price.gas_price_in_gwei}</p>
+
+                <p className="text-sm text-gray-400">Wallet Balance (ETH):</p>
+                <p>{data.address_balance.balance_in_eth}</p>
+              </div>
+            )}
+
             <button
               onClick={disconnectWallet}
               className="w-full bg-red-600 hover:bg-red-700 rounded-xl py-3 mb-6 font-semibold"
@@ -121,6 +176,7 @@ function App() {
               Disconnect
             </button>
 
+            {/* Transactions */}
             <h2 className="text-xl font-bold mb-2">Last 10 Transactions</h2>
             {transactions.length > 0 ? (
               <ul className="space-y-2 max-h-64 overflow-y-auto text-sm">

@@ -69,7 +69,7 @@ export async function getInfo(req,res){
        }
      })
    }else{
-     logAddr = await prisma.addrWalet.update({
+     logAddr = await prisma.addrWalet.updateMany({
        where:{
          address: addr
        },
