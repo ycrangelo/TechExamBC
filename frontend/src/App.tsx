@@ -33,7 +33,6 @@ export interface AddrInfo {
 function App() {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [address, setAddress] = useState<string>("");
-  const [transactionMessage, setTransactionMessage] = useState<string>("");
   const [balance, setBalance] = useState<string>("");
   const [transactions, setTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string>("");
@@ -43,6 +42,7 @@ function App() {
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [data, setData] = useState<AddrInfo | null>(null);
   const [loadingMint, setLoadingMint] = useState<boolean>(false);
+  const [mintedTokens, setMintedTokens] = useState();
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
 
@@ -68,6 +68,7 @@ function App() {
       setBalance(formatEther(bal));
 
       fetchTransactions(addr);
+      fetchMintedErc721(addr);
       getAddrInfo(addr);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
@@ -103,7 +104,38 @@ function App() {
 
       if (res.data.status === "1") {
         setTransactions(res.data.result);
-        setTransactionMessage(res.data.message);
+        console.log("data result:");
+        console.log(res.data.message);
+      }
+    } catch (err) {
+      setError("Failed to fetch transactions");
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  const fetchMintedErc721 = async (addr: string) => {
+    setLoadingTransactions(true);
+    try {
+      const res = await axios.get(ETHERSCAN_API, {
+        params: {
+          module: "account",
+          action: "tokennfttx",
+          address: addr,
+          contractaddress: contractAddress,
+          startblock: 0,
+          endblock: 99999999,
+          page: 1,
+          offset: 10,
+          sort: "desc",
+          apikey: ETHERSCAN_API_KEY,
+        },
+      });
+
+      if (res.data.status === "1") {
+        setMintedTokens(res.data.result);
+        console.log("ito mint token");
+        console.log(res.data.result);
       } else {
         setError(res.data.message);
       }
