@@ -36,8 +36,7 @@ function App() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [loadingTransactions, setLoadingTransactions] =
-    useState<boolean>(false);
+  const [loadingTransactions, setLoadingTransactions] = useState<boolean>(false);
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [data, setData] = useState<AddrInfo | null>(null);
   const [loadingMint, setLoadingMint] = useState<boolean>(false);
@@ -79,7 +78,7 @@ function App() {
         method: "eth_requestAccounts",
       });
       const addr = accounts[0];
-      console.log(`ito yung adress ${accounts[0]}`);
+     // console.log(`ito yung adress ${accounts[0]}`);
       setAddress(addr);
 
       fetchTransactions(addr);
@@ -118,8 +117,8 @@ function App() {
 
       if (res.data.status === "1") {
         setTransactions(res.data.result);
-        console.log("data result:");
-        console.log(res.data.message);
+       // console.log("data result:");
+        //console.log(res.data.message);
       }
     } catch (err: unknown) {
       setError(`failed to get transactions ${err}`);
@@ -139,7 +138,7 @@ function App() {
           contractaddress: contractAddress,
           startblock: 0,
           endblock: 99999999,
-          sort: "asc", // important: chronological order
+          sort: "asc",
           apikey: ETHERSCAN_API_KEY,
         },
       });
@@ -159,7 +158,7 @@ function App() {
 
         const ownedTokens = Array.from(owned.values());
         setMintedTokens(ownedTokens);
-        console.log("Owned ERC721 tokens:", ownedTokens);
+       // console.log("Owned ERC721 tokens:", ownedTokens);
       } else {
         setError(res.data.message);
       }
@@ -225,7 +224,7 @@ function App() {
       const from = await signer.getAddress();
       const contract = new Contract(contractAddress, nftAbi.abi, signer);
 
-      // ethers v6 needs a BigNumberish; tokenId is a decimal string from Etherscan
+      
       const transfer = await contract[
         "safeTransferFrom(address,address,uint256)"
       ](from, to, BigInt(tokenid));
