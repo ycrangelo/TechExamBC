@@ -1,6 +1,10 @@
 This project is a full-stack that demonstrates Ethereum wallet integration, backend API development, and smart contract interaction.
 Deployed Contract address: 0x3263925Cb57481aF41e397e875E51b58897F953E
 
+##Demo
+https://github.com/user-attachments/assets/04965902-8c88-49b1-a23a-9cec0bf999af
+
+---
 ## Overview
 - **Frontend (React + TypeScript + ethers.js)**  
   - Connect Ethereum wallet (MetaMask).  
@@ -37,7 +41,7 @@ cd ../frontend
 
 run this on terminal
 ```bash
-npm install   # or pnpm install
+pnpm install
 npm run dev
 ```
 
@@ -53,7 +57,7 @@ cd ../backend
 
 run this on terminal
 ```bash
-npm install
+pnpm install
 npm run dev
 ```
 
@@ -69,7 +73,7 @@ cd ../contract
   
 run this on terminal
 ```bash
-npm install
+npm install # or pnpm install
 npx hardhat compile
 npx hardhat node
 npx hardhat ignition deploy ignition/modules/Token.ts
@@ -130,7 +134,7 @@ Before running the project, make sure you have the following installed:
 - has no NFT metadata like image and description. emplementation of ERC721 doesnt include metadata.
 - limited showing of transaction up to 10 transactions only per user.
 - mobile responsiveness is limited.
-- no real-time displaying owned nft and transactions in frontend. changes may delayed by a few seconds.
+- no real-time displaying owned nft and transactions in frontend. changes may delayed by a few seconds( need to manually refresh ).
 - Requires at least 0.001 SepoliaETH in the wallet to deploy or interact with the smart contract, as gas fees are needed for transactions.
 
 
