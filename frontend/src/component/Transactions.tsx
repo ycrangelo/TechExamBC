@@ -13,20 +13,20 @@ function Transactions({ transactions, loadingTransactions }: Props) {
         <p>Loading transactions...</p>
       ) : transactions.length > 0 ? (
         <ul className="space-y-2 max-h-64 overflow-y-auto text-sm">
-          {transactions.map((tx, id) => (
+          {transactions.map((token, id) => (
             <li key={id} className="bg-zinc-800 p-3 rounded-lg break-all">
               <p>
-                <span className="font-semibold">Hash:</span> {tx.hash}
+                <span className="font-semibold">Hash:</span> {token.hash}
               </p>
               <p>
-                <span className="font-semibold">From:</span> {tx.from}
+                <span className="font-semibold">From:</span> {token.from}
               </p>
               <p>
-                <span className="font-semibold">To:</span> {tx.to}
+                <span className="font-semibold">To:</span> {token.to}
               </p>
               <p>
-                <span className="font-semibold">Value:</span>{" "}
-                {formatEther(tx.value)} ETH
+                <span className="font-semibold">Value:</span>
+                {formatEther(token.value)} ETH
               </p>
             </li>
           ))}

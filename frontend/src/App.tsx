@@ -3,18 +3,20 @@ import { BrowserProvider, Contract } from "ethers";
 import { useEffect, useState } from "react";
 import nftAbi from "./abi/TokenModuleAngeloNFT.json";
 
+//imported components
 import AddressInfo from "../src/component/AddressInfo";
 import MintedTokens from "../src/component/MintedTokens";
 import Transactions from "../src/component/Transactions";
 import TransferModal from "../src/component/TransferModal";
 import WalletConnect from "../src/component/WalletConnect";
 
-// .ENV VALUES
+// env
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
 const ETHERSCAN_API = import.meta.env.VITE_ETHERSCAN_API;
 const BACKEND_API = import.meta.env.VITE_BACKEND_API;
 const contractAddress: string = "0x3263925Cb57481aF41e397e875E51b58897F953E";
 
+//inteface para sa json data from backend
 interface Block {
   id: number;
   block_number: string;
@@ -40,20 +42,18 @@ interface AddrInfo {
 }
 
 function App() {
-  // --- STATE ---
+  // States
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [address, setAddress] = useState<string>("");
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [mintedTokens, setMintedTokens] = useState<any[]>([]);
-  const [data, setData] = useState<AddrInfo | null>(null);
-
-  const [loading, setLoading] = useState<boolean>(false);
   const [loadingTransactions, setLoadingTransactions] =
     useState<boolean>(false);
-  const [loadingData, setLoadingData] = useState<boolean>(false);
+  const [mintedTokens, setMintedTokens] = useState<any[]>([]);
   const [loadingMint, setLoadingMint] = useState<boolean>(false);
+  const [data, setData] = useState<AddrInfo | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingData, setLoadingData] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-
   const [openTransferModal, setOpenTransferModal] = useState<boolean>(false);
   const [selectedNft, setSelectedNft] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
@@ -61,7 +61,7 @@ function App() {
 
   const hasProvider = typeof window !== "undefined" && window.ethereum;
 
-  // --- WALLET FUNCTIONS ---
+  // function for connecting wallet (metamask to)
   const connectWallet = async () => {
     try {
       if (!hasProvider) {
@@ -79,7 +79,7 @@ function App() {
       });
       const addr = accounts[0];
       setAddress(addr);
-
+      //calling functions for fetching the datas
       fetchTransactions(addr);
       fetchMintedErc721(addr);
       getAddrInfo(addr);
@@ -90,6 +90,7 @@ function App() {
     }
   };
 
+  //for disconnecting the wallet
   const disconnectWallet = () => {
     setAddress("");
     setTransactions([]);
@@ -98,7 +99,7 @@ function App() {
     setError("");
   };
 
-  // --- TRANSACTIONS ---
+  // for fetching the transactions
   const fetchTransactions = async (addr: string) => {
     setLoadingTransactions(true);
     try {
@@ -110,12 +111,12 @@ function App() {
           startblock: 0,
           endblock: 99999999,
           page: 1,
-          offset: 10,
+          offset: 10, // 10 transactions only
           sort: "desc",
           apikey: ETHERSCAN_API_KEY,
         },
       });
-
+      //cheking if the req is succesful
       if (res.data.status === "1") {
         setTransactions(res.data.result);
       }
@@ -126,7 +127,7 @@ function App() {
     }
   };
 
-  // --- MINTED ERC721 ---
+  // mint nft
   const fetchMintedErc721 = async (addr: string) => {
     setLoadingTransactions(true);
     try {
@@ -142,11 +143,12 @@ function App() {
           apikey: ETHERSCAN_API_KEY,
         },
       });
-
+      //cheking if the req is succesful
       if (res.data.status === "1") {
         const owned = new Map<string, any>();
         res.data.result.forEach((token: any) => {
           const tokenId = token.tokenID;
+          //checking if the current wallet address owned the nft( bucause maybe its from transfer, mint something like that)
           if (token.to.toLowerCase() === addr.toLowerCase()) {
             owned.set(tokenId, token); // received
           }
@@ -165,7 +167,7 @@ function App() {
     }
   };
 
-  // --- BACKEND DATA ---
+  // getting the backend data
   const getAddrInfo = async (addr: string) => {
     setLoadingData(true);
     try {
@@ -178,17 +180,20 @@ function App() {
     }
   };
 
-  // --- NFT MINT ---
+  // minting the nft
   const mintNFT = async () => {
     if (!provider || !address) return;
     setLoadingMint(true);
     setError("");
     try {
       const signer = await provider.getSigner();
+      //creating of instance of contract
       const contract = new Contract(contractAddress, nftAbi.abi, signer);
-
+      //getting the id of nft
       const tokenIdBefore = await contract.nextTokenId();
+
       const mintTx = await contract.mint();
+      //minting the nft
       await mintTx.wait();
 
       alert(`NFT minted successfully!${tokenIdBefore}`);
@@ -200,7 +205,7 @@ function App() {
     }
   };
 
-  // --- NFT TRANSFER ---
+  // transferring nft to other address
   const openModal = (token: string) => {
     setSelectedNft(token);
     setOpenTransferModal(true);
@@ -212,8 +217,9 @@ function App() {
     try {
       const signer = await provider!.getSigner();
       const from = await signer.getAddress();
+      //creating of instance of contract
       const contract = new Contract(contractAddress, nftAbi.abi, signer);
-
+      //function for transfering nft to other adress
       const transferTx = await contract[
         "safeTransferFrom(address,address,uint256)"
       ](from, recipient, BigInt(selectedNft));
@@ -230,7 +236,7 @@ function App() {
     }
   };
 
-  // --- REFRESH DATA AFTER ACTIONS ---
+  // fetchin again the data if there is transaction on the website
   useEffect(() => {
     if (!address) return;
     fetchTransactions(address);

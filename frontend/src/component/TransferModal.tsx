@@ -17,8 +17,7 @@ function TransferModal({
   closeModal,
   loading,
 }: Props) {
-  if (!open) return null;
-
+  if (!open) return null; // pag close/false mag sasarado yung modal
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
       <div className="p-6 w-full max-w-md bg-zinc-900 rounded-2xl shadow-lg text-white">
