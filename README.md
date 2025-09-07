@@ -31,7 +31,7 @@ cd TechExamBC
 
 ### 2. Frontend
 ```bash
-cd ../frontend
+cd frontend
 ```
 
 - **Create .env file inside the root folder**  
@@ -51,18 +51,20 @@ cd ../backend
 ```
 
 - **Create .env file inside the root folder**  
-  - VITE_ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY> 
-  - VITE_ETHERSCAN_API="https://api.etherscan.io/v2/api?chainid=11155111"
-  - VITE_BACKEND_API=http://localhost:3000/api/get/addrInfo
+  - ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY> 
+  - ETHERSCAN_API="https://api.etherscan.io/v2/api?chainid=11155111"
+  - DATABASE_URL=<YOUR_MONGODBATLAS_DB_URL>
 
 run this on terminal
 ```bash
 pnpm install
+npx prisma generate
+npx prisma db push
 npm run dev
 ```
 
 ### 4. Smart Contract
-> The contract is already deployed on a sepolia testnet, but you can also run it locally.
+> The contract is already deployed on a sepolia testnet, but also can run it locally.
 ```bash
 cd ../contract
 ```
@@ -131,7 +133,7 @@ Before running the project, make sure you have the following installed:
 - backend stores balances in MongoDB Atlas but not currently support real-time updates manual refresh may be required.
 - Sepolia testnet is currently supported and is not configured for mainnet deployment.
 - frontend only supports or redirect to MetaMask only.
-- has no NFT metadata like image and description. emplementation of ERC721 doesnt include metadata.
+- has no NFT metadata like image and description. implementation of ERC721 doesn't include metadata.
 - limited showing of transaction up to 10 transactions only per user.
 - mobile responsiveness is limited.
 - no real-time displaying owned nft and transactions in frontend. changes may delayed by a few seconds( need to manually refresh ).
